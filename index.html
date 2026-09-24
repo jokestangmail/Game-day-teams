@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lineup Builder</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Lineups">
+<meta name="theme-color" content="#1f7a4d">
+<style>
+:root { color-scheme: light; --bg:#f6f7f9; --card:#fff; --ink:#1d2330; --mute:#6b7280; --line:#e3e6eb; --acc:#1f7a4d; --acc2:#e8f4ee; --bad:#c62828; --badbg:#fdecec;
+  --G:#fff3cd; --D:#dbeafe; --M:#e0f2e9; --F:#fde2e2; }
+* { box-sizing:border-box; }
+body { margin:0; font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; background:var(--bg); color:var(--ink); }
+header { background:var(--acc); color:#fff; padding:12px 18px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+header h1 { font-size:18px; margin:0; }
+nav button { background:transparent; border:1px solid rgba(255,255,255,.4); color:#fff; padding:6px 12px; border-radius:6px; cursor:pointer; margin-right:4px; }
+nav button.on { background:#fff; color:var(--acc); font-weight:600; }
+main { padding:16px 18px; max-width:1150px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px; margin-bottom:14px; }
+.card h2 { font-size:15px; margin:0 0 10px; }
+.row { display:flex; gap:14px; flex-wrap:wrap; align-items:flex-end; }
+label.f { display:flex; flex-direction:column; font-size:12px; color:var(--mute); gap:3px; }
+input, select { font:inherit; padding:5px 7px; border:1px solid #cfd4db; border-radius:6px; background:#fff; color:var(--ink); }
+input.num { width:52px; }
+button.b { font:inherit; padding:7px 14px; border-radius:7px; border:1px solid #cfd4db; background:#fff; cursor:pointer; }
+button.b:hover { background:#f1f3f5; }
+button.p { background:var(--acc); color:#fff; border-color:var(--acc); font-weight:600; }
+button.p:hover { background:#18663f; }
+button.x { border:none; background:none; color:var(--mute); cursor:pointer; font-size:16px; }
+.chips { display:flex; flex-wrap:wrap; gap:6px; }
+.chip { padding:5px 10px; border-radius:16px; border:1px solid var(--line); cursor:pointer; user-select:none; background:#fff; }
+.chip.on { background:var(--acc2); border-color:#9fd1b6; }
+.chip.off { color:#9aa1ab; text-decoration:line-through; }
+.chip small { color:var(--mute); margin-left:4px; }
+table { border-collapse:collapse; width:100%; }
+th, td { border-bottom:1px solid var(--line); padding:4px 8px; text-align:left; }
+th { font-size:12px; color:var(--mute); font-weight:600; background:#fafbfc; }
+td.c, th.c { text-align:center; }
+td.q select { width:52px; padding:3px 4px; text-align:center; font-weight:600; border-color:transparent; background:transparent; }
+td.q.G { background:var(--G); } td.q.D { background:var(--D); } td.q.M { background:var(--M); } td.q.F { background:var(--F); }
+td.q.bad { outline:2px solid var(--bad); outline-offset:-2px; }
+tfoot td { font-weight:600; background:#fafbfc; }
+.okc { color:var(--acc); } .badc { color:var(--bad); }
+.msg { padding:8px 12px; border-radius:7px; margin-bottom:10px; }
+.msg.err { background:var(--badbg); color:var(--bad); }
+.msg.ok { background:var(--acc2); color:var(--acc); }
+.hint { color:var(--mute); font-size:12px; }
+.qgrid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; }
+.qcard { border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+.qcard h3 { margin:0 0 6px; font-size:14px; display:flex; justify-content:space-between; }
+.qcard .pl { display:flex; gap:6px; padding:2px 0; }
+.tag { display:inline-block; width:20px; text-align:center; border-radius:4px; font-weight:700; font-size:12px; }
+.tag.G { background:var(--G); } .tag.D { background:var(--D); } .tag.M { background:var(--M); } .tag.F { background:var(--F); }
+.lvl { display:inline-block; min-width:18px; text-align:center; border-radius:4px; font-size:11px; font-weight:700; color:#fff; }
+.lvl.l1 { background:#b0b6bf; } .lvl.l2 { background:#7c8aa0; } .lvl.l3 { background:#3b82f6; } .lvl.l4 { background:#2f9e6a; } .lvl.l5 { background:#166b41; }
+.grp { border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:10px; }
+.grp .chip { font-size:12px; padding:3px 8px; }
+.hidden { display:none; }
+.tscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.pl.dd { align-items:center; border:1px solid var(--line); border-radius:6px; padding:4px 6px; margin:3px 0; background:#fff; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+.pl.dd .nm { flex:1; }
+.pl.dd .tot { font-size:11px; color:var(--mute); min-width:20px; text-align:right; }
+.pl.dd.empty { border-style:dashed; color:var(--mute); background:#fafbfc; }
+.pl.dd.oop { border-color:var(--bad); background:var(--badbg); }
+.pl.dd.over { border-color:var(--bad); }
+.pl.dd.sel { outline:3px solid #f59e0b; outline-offset:-1px; }
+.pl.dd.dragging { opacity:.35; }
+.dd.over-t { outline:3px dashed var(--acc); outline-offset:-1px; }
+.bench { margin-top:8px; padding:6px; border-radius:6px; background:#f3f4f6; min-height:40px; }
+.bench .pl.dd { background:#fff; opacity:.85; }
+.ghost { position:fixed; z-index:99; pointer-events:none; box-shadow:0 6px 18px rgba(0,0,0,.2); opacity:.95; display:flex; gap:6px; }
+.pt { margin-right:14px; white-space:nowrap; }
+@media (max-width: 640px) {
+  main { padding:10px; }
+  header { padding:10px 12px; gap:8px; }
+  nav { display:flex; flex-wrap:wrap; gap:4px; }
+  nav button { padding:6px 9px; font-size:13px; margin:0; }
+  .card { padding:12px; }
+  .qgrid { grid-template-columns:1fr; }
+  .pl.dd { padding:8px; font-size:15px; }
+  .row { gap:10px; }
+  #rosterTbl input[data-k=name] { width:130px !important; }
+  input[type=checkbox] { width:22px; height:22px; }
+  .pt { white-space:normal; display:block; }
+}
+input[type=checkbox] { width:18px; height:18px; cursor:pointer; accent-color:var(--acc); vertical-align:middle; }
+label.pc { display:inline-flex; align-items:center; gap:4px; font-weight:600; cursor:pointer; }
+td.pc { text-align:center; padding:4px 4px; }
+@media print {
+  header, .noprint { display:none !important; }
+  main { padding:0; } .card { border:none; padding:0; }
+  td.q select { appearance:none; -webkit-appearance:none; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Lineup Builder</h1>
+  <nav>
+    <button data-tab="game" class="on">Game day</button>
+    <button data-tab="roster">Roster &amp; levels</button>
+    <button data-tab="groups">Chemistry groups</button>
+    <button data-tab="season">Season</button>
+  </nav>
+</header>
+<main>
+
+<!-- GAME DAY -->
+<section id="tab-game">
+  <div class="card noprint">
+    <h2>1. Who's here?</h2>
+    <div class="hint" style="margin-bottom:8px">Click a name to mark them absent. <a href="#" id="allIn">Everyone in</a></div>
+    <div class="chips" id="chips"></div>
+    <div class="hint" id="presentCount" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card noprint">
+    <h2>2. Settings</h2>
+    <div class="row">
+      <label class="f">Game<input id="gameLabel" style="width:170px" placeholder="e.g. 9/27 vs Lions"></label>
+      <label class="f">G<input class="num" type="number" min="0" id="fG"></label>
+      <label class="f">D<input class="num" type="number" min="0" id="fD"></label>
+      <label class="f">M<input class="num" type="number" min="0" id="fM"></label>
+      <label class="f">F<input class="num" type="number" min="0" id="fF"></label>
+      <label class="f">Level boost
+        <select id="boost">
+          <option value="0">0 – as even as possible</option>
+          <option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          <option value="4">4</option><option value="6">6 – strong</option>
+        </select></label>
+      <button class="b p" id="genBtn">Generate lineup</button>
+    </div>
+    <p class="hint" style="margin:10px 0 0">
+      Playing time is split as evenly as possible. If some players must sit an extra quarter, it's the lowest levels first (and whoever has played the most this season breaks ties).
+      <b>Level boost</b> moves that many more quarters from the lowest-level players to the highest-level players (max 3 quarters each, min 1).
+      Players are kept to their listed positions, usually play Q1+Q3 or Q2+Q4, keep the same position all game, and each quarter's total skill is balanced. <b>Chemistry groups</b> (their own tab) are kept on the field together, or apart, whenever possible.
+    </p>
+  </div>
+
+  <div id="genMsg"></div>
+
+  <div class="card" id="lineupCard" style="display:none">
+    <div class="row noprint" style="justify-content:space-between;margin-bottom:10px">
+      <h2 style="margin:0" id="lineupTitle">Lineup</h2>
+      <div class="row">
+        <button class="b" id="copyBtn">Copy for Excel</button>
+        <button class="b" id="printBtn">Print</button>
+        <button class="b p" id="saveBtn">Save game to season</button>
+      </div>
+    </div>
+    <h2 class="hidden" id="printTitle"></h2>
+    <div class="hint noprint" style="margin-bottom:6px">Change any cell with its dropdown. Red outline = not a listed position. Footer shows each quarter's position counts.</div>
+    <div class="tscroll"><table id="lineup"></table></div>
+    <div id="grpCheck" style="margin-top:10px"></div>
+    <h2 style="margin:18px 0 4px">Edit by quarter</h2>
+    <div class="hint noprint" style="margin-bottom:8px"><b>Drag</b> a player onto another to swap positions, onto someone sitting to sub them in, or into "Sitting" to take them off. On a phone you can also <b>tap</b> one player, then tap another. <b>2q</b> = quarters this game; counts update live.</div>
+    <div id="ptSummary" class="noprint" style="margin-bottom:10px"></div>
+    <div class="qgrid" id="qgrid"></div>
+    <textarea id="clip" style="position:absolute;left:-9999px"></textarea>
+  </div>
+</section>
+
+<!-- ROSTER -->
+<section id="tab-roster" class="hidden">
+  <div class="card">
+    <h2>Roster</h2>
+    <p class="hint" style="margin-top:0">Positions: tick every position a player can play (G = goalie, D = defense, M = mid, F = forward). Changes save automatically. Level: 1 (developing) to 5 (strongest). Aim for a spread; the balancing works best when not everyone is a 3.</p>
+    <div class="tscroll"><table id="rosterTbl"></table></div>
+    <div class="row" style="margin-top:12px">
+      <input id="newName" placeholder="Player name" style="width:190px">
+      <span id="newPos" class="row" style="gap:8px;align-items:center"><label class="pc"><input type="checkbox" value="G">G</label><label class="pc"><input type="checkbox" value="D">D</label><label class="pc"><input type="checkbox" value="M">M</label><label class="pc"><input type="checkbox" value="F">F</label></span>
+      <select id="newLvl"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option></select>
+      <button class="b p" id="addBtn">Add player</button>
+      <span style="flex:1"></span>
+      <button class="b" id="resetRoster">Reset to saved roster</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- GROUPS -->
+<section id="tab-groups" class="hidden">
+  <div class="card">
+    <h2>Chemistry groups</h2>
+    <p class="hint" style="margin-top:0"><b>Play together:</b> players who click (e.g. a strong midfield trio) are put in the same quarters. <b>Keep apart:</b> spread players out (e.g. your two best, or two who don't mix). Click names to add or remove them.</p>
+    <div id="groups"></div>
+    <button class="b" id="addGroup">+ New group</button>
+  </div>
+</section>
+
+<!-- SEASON -->
+<section id="tab-season" class="hidden">
+  <div class="card">
+    <h2>Playing time this season</h2>
+    <div class="tscroll"><table id="seasonTbl"></table></div>
+  </div>
+  <div class="card">
+    <h2>Saved games</h2>
+    <div id="gamesList"></div>
+    <div style="margin-top:10px"><button class="b" id="resetSeason">Clear season</button></div>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ===== Lineup engine =====
+const POS = ['G', 'D', 'M', 'F'];
+const NQ = 4;
+
+function mulberry(seed) {
+  return function () {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function shuffle(a, rng) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// Hungarian algorithm (square cost matrix), returns assignment row->col
+function hungarian(cost) {
+  const n = cost.length, INF = 1e18;
+  const u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0);
+  const p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+  for (let i = 1; i <= n; i++) {
+    p[0] = i; let j0 = 0;
+    const minv = new Array(n + 1).fill(INF), used = new Array(n + 1).fill(false);
+    do {
+      used[j0] = true; const i0 = p[j0]; let delta = INF, j1 = 0;
+      for (let j = 1; j <= n; j++) if (!used[j]) {
+        const cur = cost[i0 - 1][j - 1] - u[i0] - v[j];
+        if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+        if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+      }
+      for (let j = 0; j <= n; j++) {
+        if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+      }
+      j0 = j1;
+    } while (p[j0] !== 0);
+    do { const j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+  }
+  const ans = new Array(n);
+  for (let j = 1; j <= n; j++) ans[p[j] - 1] = j - 1;
+  return ans;
+}
+
+// players: [{name, pos:'DM', level:1-3}], formation {G,D,M,F}
+// season: {name: {q: quartersPlayed, g: gamesAttended}}
+// boost: number of quarters moved from lower-level to higher-level players
+function computeTargets(players, formation, boost, season, rng) {
+  const perQ = POS.reduce((s, k) => s + formation[k], 0);
+  const S = perQ * NQ, N = players.length;
+  if (N < perQ) throw new Error(`Need at least ${perQ} players present (have ${N}).`);
+  const base = Math.floor(S / N), extra = S - base * N;
+  const ratio = p => { const s = season[p.name]; return s && s.g ? s.q / s.g : 0; };
+  const noise = new Map(players.map(p => [p.name, rng()]));
+  const t = new Map(players.map(p => [p.name, base]));
+  // extras go to higher level, then whoever has played less this season
+  const rankUp = [...players].sort((a, b) => b.level - a.level || ratio(a) - ratio(b) || noise.get(a.name) - noise.get(b.name));
+  for (let i = 0; i < extra; i++) t.set(rankUp[i].name, base + 1);
+  // level boost: shift quarters from lower level to higher level
+  const maxQ = Math.min(NQ, Math.max(3, base + 1)), minQ = 1;
+  for (let k = 0; k < boost; k++) {
+    const recv = rankUp.find(p => t.get(p.name) < maxQ);
+    const give = [...rankUp].reverse().find(p => t.get(p.name) > minQ && recv && p.level < recv.level);
+    if (!recv || !give) break;
+    t.set(recv.name, t.get(recv.name) + 1); t.set(give.name, t.get(give.name) - 1);
+  }
+  return t;
+}
+
+function patternsFor(q) {
+  const out = [];
+  for (let m = 0; m < 16; m++) {
+    const qs = [0, 1, 2, 3].filter(i => m & (1 << i));
+    if (qs.length !== q) continue;
+    let pen = 0;
+    for (let i = 1; i < qs.length; i++) if (qs[i] - qs[i - 1] === 1) pen += 3; // back-to-back quarters
+    out.push({ qs, pen });
+  }
+  return out;
+}
+
+function generate(players, formation, opts = {}) {
+  const seed = opts.seed ?? Math.floor(Math.random() * 1e9);
+  const rng = mulberry(seed);
+  const attempts = opts.attempts ?? 1500;
+  const season = opts.season || {};
+  const targets = opts.targets || computeTargets(players, formation, opts.boost || 0, season, rng);
+  const slots = [];
+  POS.forEach(k => { for (let i = 0; i < formation[k]; i++) slots.push(k); });
+  const perQ = slots.length;
+  // groups: [{type:'together'|'apart', members:[names]}] -> mate lists
+  const present = new Set(players.map(p => p.name));
+  const mates = new Map(players.map(p => [p.name, []]));
+  (opts.groups || []).forEach(g => {
+    const m = g.members.filter(n => present.has(n));
+    for (const a of m) for (const b of m) if (a !== b) mates.get(a).push({ name: b, type: g.type });
+  });
+  const groupPen = (name, qs, qsOf) => {
+    let pen = 0;
+    for (const mt of mates.get(name)) {
+      const o = qsOf.get(mt.name); if (!o) continue;
+      if (mt.type === 'apart') pen += qs.filter(q => o.includes(q)).length * 3;
+      else pen += (qs.filter(q => !o.includes(q)).length + o.filter(q => !qs.includes(q)).length) * 2.5;
+    }
+    return pen;
+  };
+  let best = null;
+
+  for (let a = 0; a < attempts; a++) {
+    // 1) choose quarters for each player
+    const cap = [perQ, perQ, perQ, perQ];
+    const order = shuffle([...players], rng).sort((x, y) => targets.get(y.name) - targets.get(x.name));
+    const qsOf = new Map(); let ok = true, patPen = 0, grpPen = 0;
+    for (const p of order) {
+      const pats = patternsFor(targets.get(p.name)).filter(pt => pt.qs.every(q => cap[q] > 0));
+      if (!pats.length) { ok = false; break; }
+      // prefer low penalty, then quarters with more room, with randomness
+      let bestPat = null, bestScore = Infinity, bestG = 0;
+      for (const pt of pats) {
+        const room = pt.qs.reduce((s, q) => s + cap[q], 0);
+        const g = groupPen(p.name, pt.qs, qsOf);
+        const sc = pt.pen + g - room * 0.15 + rng() * 1.5;
+        if (sc < bestScore) { bestScore = sc; bestPat = pt; bestG = g; }
+      }
+      bestPat.qs.forEach(q => cap[q]--); qsOf.set(p.name, bestPat.qs); patPen += bestPat.pen; grpPen += bestG;
+    }
+    if (!ok || cap.some(c => c !== 0)) continue;
+
+    // 2) positions per quarter via Hungarian
+    const lineup = new Map(players.map(p => [p.name, ['', '', '', '']]));
+    const prevPos = new Map();
+    let posCost = 0;
+    const qOrder = shuffle([0, 1, 2, 3], rng);
+    for (const q of qOrder) {
+      const onField = players.filter(p => qsOf.get(p.name).includes(q));
+      const cost = onField.map(p => slots.map(s => {
+        const idx = p.pos.indexOf(s);
+        if (idx < 0) return 1000;
+        let c = idx * 0.2 + rng() * 0.3;
+        const pp = prevPos.get(p.name);
+        if (pp && pp !== s) c += 2;          // keep same position across quarters
+        if (s === 'G' && pp === 'G') c += 0.5; // mild variety in goal
+        return c;
+      }));
+      const asg = hungarian(cost);
+      let c = 0;
+      onField.forEach((p, i) => { c += cost[i][asg[i]]; lineup.get(p.name)[q] = slots[asg[i]]; if (!prevPos.has(p.name)) prevPos.set(p.name, slots[asg[i]]); });
+      if (c >= 1000) { ok = false; break; }
+      posCost += c;
+    }
+    if (!ok) continue;
+
+    // 3) level balance across quarters
+    const lv = [0, 0, 0, 0];
+    players.forEach(p => lineup.get(p.name).forEach((x, q) => { if (x) lv[q] += p.level; }));
+    const mean = lv.reduce((s, x) => s + x, 0) / 4;
+    const balPen = lv.reduce((s, x) => s + (x - mean) ** 2, 0) * 0.3;
+
+    const score = patPen + posCost + balPen + grpPen;
+    if (!best || score < best.score) best = { score, lineup, targets, levelSums: lv, seed };
+  }
+  if (!best) throw new Error('Could not build a valid lineup. Check that enough present players can play each position (especially G).');
+  return best;
+}
+
+if (typeof module !== 'undefined') module.exports = { generate, computeTargets, POS };
+
+</script>
+<script>
+const DEFAULT_ROSTER = `Felipe Bayardo|MF|5;David Bendjoya|DM|3;Nicola Cardillo|DM|1;Ryan DiSparano|F|3;Nate Dunlop|DM|3;Isaac Gerson|MF|4;Gee|GDMF|5;Esteban Gomez|DMF|5;Pablo Guerrero|GD|2;Nacho|DMF|4;Bernardo Kabbach|GDM|2;Gabriel Lugo|DM|2;Charles Newman|GDM|3;Nicolas Nielsen|DMF|3;Juan|GMF|4;Francesco Romano|DM|2;Tharun Sathish|DM|1;Aaron Shakibi|F|4;Luke Solazzo|GDMF|4;Marcus Suri|D|2;Laksh Thakkar|D|1;Simon Valencia|DMF|3;Mateo|DM|4`
+  .split(';').map(s => { const [name, pos, level] = s.split('|'); return { name, pos, level: +level, present: true }; });
+const DEFAULT_GROUPS = [
+  { name: 'Group 1', type: 'together', members: ['Ryan DiSparano', 'Esteban Gomez', 'Juan', 'Aaron Shakibi'] },
+  { name: 'Group 2', type: 'together', members: ['Gee', 'Nacho'] },
+  { name: 'Group 3', type: 'apart', members: ['Aaron Shakibi', 'Simon Valencia'] },
+  { name: 'Group 4', type: 'together', members: ['Felipe Bayardo', 'Gee', 'Nacho'] },
+];
+const KEY = 'lineup-builder-v1';
+let S = load();
+
+function load() {
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) {}
+  const out = Object.assign({ roster: DEFAULT_ROSTER.map(p => ({ ...p })), formation: { G: 1, D: 4, M: 3, F: 3 }, boost: 0, games: [], current: null, groups: JSON.parse(JSON.stringify(DEFAULT_GROUPS)) }, s || {});
+  if (!s || !s.scale5) { // migrate old 1-3 levels to 1-5
+    if (s) s.roster.forEach(p => p.level = ({ 1: 1, 2: 3, 3: 5 })[p.level] || 3);
+    return Object.assign(out, { scale5: true });
+  }
+  return out;
+}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const cleanPos = s => [...new Set(String(s).toUpperCase().replace(/[^GDMF]/g, ''))].join('');
+
+// ---------- tabs ----------
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  ['game', 'roster', 'groups', 'season'].forEach(t => $('tab-' + t).classList.toggle('hidden', t !== b.dataset.tab));
+  if (b.dataset.tab === 'season') renderSeason();
+  if (b.dataset.tab === 'roster') renderRoster();
+  if (b.dataset.tab === 'groups') renderGroups();
+  if (b.dataset.tab === 'game') renderChips();
+});
+
+// ---------- season stats ----------
+function seasonStats() {
+  const m = {};
+  S.games.forEach(g => Object.entries(g.lineup).forEach(([n, qs]) => {
+    const e = m[n] || (m[n] = { g: 0, q: 0, G: 0, D: 0, M: 0, F: 0 });
+    e.g++; qs.forEach(x => { if (x) { e.q++; e[x]++; } });
+  }));
+  return m;
+}
+
+// ---------- attendance ----------
+function renderChips() {
+  $('chips').innerHTML = S.roster.map((p, i) =>
+    `<span class="chip ${p.present ? 'on' : 'off'}" data-i="${i}"><span class="lvl l${p.level}">${p.level}</span> ${esc(p.name)}<small>${esc(p.pos)}</small></span>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c => c.onclick = () => { const p = S.roster[c.dataset.i]; p.present = !p.present; save(); renderChips(); });
+  const n = S.roster.filter(p => p.present).length, perQ = ['G','D','M','F'].reduce((s, k) => s + (+S.formation[k] || 0), 0);
+  $('presentCount').textContent = `${n} present · ${perQ} on the field per quarter · ${perQ * 4} quarter-spots to share (${n ? (perQ * 4 / n).toFixed(2) : 0} per player)`;
+}
+$('allIn').onclick = e => { e.preventDefault(); S.roster.forEach(p => p.present = true); save(); renderChips(); };
+
+// ---------- settings ----------
+['G', 'D', 'M', 'F'].forEach(k => { const el = $('f' + k); el.value = S.formation[k]; el.oninput = () => { S.formation[k] = Math.max(0, parseInt(el.value) || 0); save(); renderChips(); }; });
+$('boost').value = S.boost; $('boost').onchange = () => { S.boost = +$('boost').value; save(); };
+$('gameLabel').value = S.current?.label || new Date().toLocaleDateString();
+
+$('genBtn').onclick = () => {
+  const players = S.roster.filter(p => p.present).map(p => ({ name: p.name, pos: cleanPos(p.pos), level: +p.level }));
+  $('genMsg').innerHTML = '';
+  try {
+    const bad = players.filter(p => !p.pos);
+    if (bad.length) throw new Error('No positions listed for: ' + bad.map(p => p.name).join(', '));
+    const r = generate(players, S.formation, { boost: S.boost, season: seasonStats(), groups: S.groups });
+    const lineup = {};
+    players.forEach(p => lineup[p.name] = r.lineup.get(p.name));
+    S.current = { label: $('gameLabel').value || new Date().toLocaleDateString(), lineup };
+    save(); renderLineup();
+  } catch (e) {
+    $('genMsg').innerHTML = `<div class="msg err">${esc(e.message)}</div>`;
+  }
+};
+$('gameLabel').oninput = () => { if (S.current) { S.current.label = $('gameLabel').value; save(); renderTitle(); } };
+
+// ---------- lineup ----------
+function renderTitle() { const t = 'Lineup – ' + (S.current?.label || ''); $('lineupTitle').textContent = t; $('printTitle').textContent = t; }
+function renderLineup() {
+  const cur = S.current;
+  if (!cur) { $('lineupCard').style.display = 'none'; return; }
+  $('lineupCard').style.display = '';
+  renderTitle();
+  const byName = Object.fromEntries(S.roster.map(p => [p.name, p]));
+  const names = S.roster.map(p => p.name).filter(n => cur.lineup[n]).concat(Object.keys(cur.lineup).filter(n => !byName[n]));
+  const opts = sel => ['', 'G', 'D', 'M', 'F'].map(o => `<option ${o === sel ? 'selected' : ''} value="${o}">${o || '–'}</option>`).join('');
+  let h = `<thead><tr><th>Name</th><th class="c">Lvl</th>${[1,2,3,4].map(q => `<th class="c">Q${q}</th>`).join('')}<th class="c">Count</th><th>Positions</th></tr></thead><tbody>`;
+  names.forEach(n => {
+    const qs = cur.lineup[n], p = byName[n] || { pos: '', level: 2 };
+    h += `<tr><td>${esc(n)}</td><td class="c"><span class="lvl l${p.level}">${p.level}</span></td>` +
+      qs.map((x, q) => `<td class="q c ${x} ${x && !cleanPos(p.pos).includes(x) ? 'bad' : ''}"><select data-n="${esc(n)}" data-q="${q}">${opts(x)}</select></td>`).join('') +
+      `<td class="c">${qs.filter(Boolean).length}</td><td>${esc(p.pos)}</td></tr>`;
+  });
+  const need = S.formation, perQ = ['G','D','M','F'].reduce((s, k) => s + need[k], 0);
+  const cnt = [0,1,2,3].map(q => { const c = { G: 0, D: 0, M: 0, F: 0, n: 0 }; names.forEach(n => { const x = cur.lineup[n][q]; if (x) { c[x]++; c.n++; } }); return c; });
+  h += `</tbody><tfoot><tr><td>Count</td><td></td>${cnt.map(c => `<td class="c ${c.n === perQ ? 'okc' : 'badc'}">${c.n}</td>`).join('')}<td></td><td></td></tr>
+    <tr class="noprint"><td class="hint">By position</td><td></td>${cnt.map(c => `<td class="c" style="font-size:11px;font-weight:500">${['G','D','M','F'].map(k => `<span class="${c[k] === need[k] ? '' : 'badc'}">${k}${c[k]}</span>`).join(' ')}</td>`).join('')}<td></td><td></td></tr></tfoot>`;
+  $('lineup').innerHTML = h;
+  $('lineup').querySelectorAll('select').forEach(s => s.onchange = () => { cur.lineup[s.dataset.n][+s.dataset.q] = s.value; save(); renderLineup(); });
+
+  // group check
+  const gl = (S.groups || []).map((g, i) => {
+    const m = g.members.filter(n => cur.lineup[n]); if (m.length < 2) return '';
+    const probs = [0,1,2,3].filter(q => { const on = m.filter(n => cur.lineup[n][q]).length; return g.type === 'apart' ? on > 1 : (on > 0 && on < m.length); });
+    const ok = !probs.length;
+    return `<div class="${ok ? 'okc' : 'badc'}">${ok ? '✓' : '⚠'} ${esc(g.name || 'Group ' + (i + 1))} (${g.type === 'apart' ? 'keep apart' : 'together'}): ${ok ? 'OK' : (g.type === 'apart' ? 'together' : 'split') + ' in ' + probs.map(q => 'Q' + (q + 1)).join(', ')}</div>`;
+  }).join('');
+  $('grpCheck').innerHTML = gl ? `<div class="hint" style="margin-bottom:2px">Groups</div>${gl}` : '';
+
+  // playing-time summary
+  const tally = {};
+  names.forEach(n => { const c = cur.lineup[n].filter(Boolean).length; (tally[c] = tally[c] || []).push(n); });
+  $('ptSummary').innerHTML = '<b>Playing time:</b> ' + Object.keys(tally).sort((a, b) => b - a).map(c =>
+    `<span class="pt" title="${esc(tally[c].join(', '))}">${c} qtr${c == 1 ? '' : 's'}: <b>${tally[c].length}</b>${+c <= 1 ? ` <span class="hint">(${tally[c].map(esc).join(', ')})</span>` : ''}</span>`).join('');
+
+  // quarter editor cards
+  const chip = (q, n, pos, extra = '') => {
+    const p = byName[n] || { pos: '', level: 3 };
+    const tot = cur.lineup[n].filter(Boolean).length;
+    const bad = pos && !cleanPos(p.pos).includes(pos);
+    const isSel = SEL && SEL.q === q && SEL.n === n && SEL.pos === pos;
+    return `<div class="pl dd ${bad ? 'oop' : ''} ${isSel ? 'sel' : ''} ${extra}" data-q="${q}" data-n="${esc(n)}" data-pos="${pos}">
+      ${pos ? `<span class="tag ${pos}">${pos}</span>` : ''}<span class="nm">${esc(n)}</span>
+      <span class="lvl l${p.level}">${p.level}</span><span class="tot" title="quarters this game">${tot}q</span></div>`;
+  };
+  $('qgrid').innerHTML = [0,1,2,3].map(q => {
+    const on = names.filter(n => cur.lineup[n][q]);
+    const lv = on.reduce((s, n) => s + (+(byName[n]?.level) || 0), 0);
+    let body = '';
+    ['G','D','M','F'].forEach(k => {
+      const here = on.filter(n => cur.lineup[n][q] === k);
+      body += here.map(n => chip(q, n, k, here.indexOf(n) >= need[k] ? 'over' : '')).join('');
+      for (let i = here.length; i < need[k]; i++) {
+        const isSel = SEL && SEL.q === q && !SEL.n && SEL.pos === k;
+        body += `<div class="pl dd empty ${isSel ? 'sel' : ''}" data-q="${q}" data-n="" data-pos="${k}"><span class="tag ${k}">${k}</span><span class="nm">open spot</span></div>`;
+      }
+    });
+    const bench = names.filter(n => !cur.lineup[n][q]);
+    return `<div class="qcard"><h3><span>Quarter ${q + 1}</span><span class="hint ${on.length === perQ ? '' : 'badc'}">${on.length}/${perQ} · skill ${lv}</span></h3>${body}
+      <div class="bench dd" data-q="${q}" data-n="" data-pos="" data-bench="1"><div class="hint">Sitting (${bench.length}) – drop here to sit a player</div>${bench.map(n => chip(q, n, '')).join('')}</div></div>`;
+  }).join('');
+}
+
+// ---------- move / swap players inside a quarter ----------
+let SEL = null; // {q, n, pos}
+function doMove(a, b) { // a, b: {q, n, pos, bench}
+  const L = S.current.lineup;
+  if (a.q !== b.q) { $('genMsg').innerHTML = '<div class="msg err">You can only swap within the same quarter.</div>'; return; }
+  const q = a.q;
+  if (a.n && b.n && a.n === b.n) return;
+  if (b.bench && !b.n) { if (a.n && a.pos) L[a.n][q] = ''; }          // sit player
+  else if (a.n && b.n) { const t = L[a.n][q]; L[a.n][q] = L[b.n][q]; L[b.n][q] = t; } // swap (incl. sub from bench)
+  else if (a.n && !b.n && b.pos) { L[a.n][q] = b.pos; }              // move into open spot
+  else if (!a.n && a.pos && b.n) { if (!b.pos) L[b.n][q] = a.pos; else L[b.n][q] = a.pos; } // open spot <- player
+  else return;
+  $('genMsg').innerHTML = ''; save(); renderLineup();
+}
+const info = el => ({ q: +el.dataset.q, n: el.dataset.n, pos: el.dataset.pos, bench: !!el.dataset.bench });
+$('qgrid').addEventListener('click', e => {
+  if (DRAG.justDropped) { DRAG.justDropped = false; return; }
+  const el = e.target.closest('.pl.dd') || e.target.closest('.bench.dd'); if (!el) return;
+  const t = info(el);
+  if (!SEL) { if (t.n || t.pos) { SEL = t; renderLineup(); } return; }
+  const a = SEL; SEL = null;
+  if (a.q === t.q && a.n === t.n && a.pos === t.pos) { renderLineup(); return; } // tap again = cancel
+  doMove(a, t); renderLineup();
+});
+// mouse / pen / touch drag
+const DRAG = { el: null, ghost: null, x: 0, y: 0, moved: false, justDropped: false };
+$('qgrid').addEventListener('pointerdown', e => {
+  const el = e.target.closest('.pl.dd'); if (!el || e.button > 0) return;
+  DRAG.el = el; DRAG.x = e.clientX; DRAG.y = e.clientY; DRAG.moved = false; DRAG.pid = e.pointerId;
+});
+window.addEventListener('pointermove', e => {
+  if (!DRAG.el || e.pointerId !== DRAG.pid) return;
+  if (!DRAG.moved && Math.hypot(e.clientX - DRAG.x, e.clientY - DRAG.y) < 8) return;
+  if (!DRAG.moved) {
+    DRAG.moved = true; SEL = null;
+    const g = DRAG.el.cloneNode(true); g.classList.add('ghost'); g.style.width = DRAG.el.offsetWidth + 'px';
+    document.body.appendChild(g); DRAG.ghost = g; DRAG.el.classList.add('dragging');
+  }
+  e.preventDefault();
+  DRAG.ghost.style.left = (e.clientX - 20) + 'px'; DRAG.ghost.style.top = (e.clientY - 14) + 'px';
+  document.querySelectorAll('.dd.over-t').forEach(x => x.classList.remove('over-t'));
+  const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.pl.dd, .bench.dd');
+  if (t && t !== DRAG.el) t.classList.add('over-t');
+}, { passive: false });
+window.addEventListener('pointerup', e => {
+  if (!DRAG.el || e.pointerId !== DRAG.pid) return;
+  const src = DRAG.el; DRAG.el = null;
+  if (!DRAG.moved) return;
+  DRAG.ghost?.remove(); DRAG.ghost = null; DRAG.justDropped = true; setTimeout(() => DRAG.justDropped = false, 50);
+  src.classList.remove('dragging');
+  const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.pl.dd, .bench.dd');
+  if (t && t !== src) doMove(info(src), info(t)); else renderLineup();
+});
+window.addEventListener('pointercancel', () => { DRAG.ghost?.remove(); DRAG.el = null; DRAG.ghost = null; renderLineup(); });
+
+$('copyBtn').onclick = () => {
+  const cur = S.current, byName = Object.fromEntries(S.roster.map(p => [p.name, p]));
+  const names = S.roster.map(p => p.name).filter(n => cur.lineup[n]);
+  const rows = [['Name', 'Q1', 'Q2', 'Q3', 'Q4', 'Count', '', 'positions']];
+  names.forEach(n => rows.push([n, ...cur.lineup[n], cur.lineup[n].filter(Boolean).length, '', byName[n]?.pos || '']));
+  rows.push(['Count', ...[0,1,2,3].map(q => names.filter(n => cur.lineup[n][q]).length), '', '', '']);
+  const tsv = rows.map(r => r.join('\t')).join('\n');
+  const done = () => { $('genMsg').innerHTML = '<div class="msg ok">Copied. Click cell A1 in Excel and paste.</div>'; };
+  const fallback = () => { const t = $('clip'); t.value = tsv; t.select(); try { document.execCommand('copy'); done(); } catch (e) { $('genMsg').innerHTML = '<div class="msg err">Copy was blocked. Select the table and copy manually.</div>'; } };
+  if (navigator.clipboard?.writeText) navigator.clipboard.writeText(tsv).then(done, fallback); else fallback();
+};
+$('printBtn').onclick = () => window.print();
+$('saveBtn').onclick = () => {
+  const cur = S.current; if (!cur) return;
+  const i = S.games.findIndex(g => g.label === cur.label);
+  const g = { label: cur.label, lineup: JSON.parse(JSON.stringify(cur.lineup)) };
+  if (i >= 0) { if (!confirm(`"${cur.label}" is already saved. Replace it?`)) return; S.games[i] = g; } else S.games.push(g);
+  save(); $('genMsg').innerHTML = `<div class="msg ok">Saved "${esc(cur.label)}" to the season (${S.games.length} game${S.games.length > 1 ? 's' : ''}). Future lineups will even out playing time using this.</div>`;
+};
+
+// ---------- roster ----------
+function renderRoster() {
+  let h = `<thead><tr><th>Name</th>${['G','D','M','F'].map(k => `<th class="c">${k}</th>`).join('')}<th>Level</th><th></th></tr></thead><tbody>`;
+  S.roster.forEach((p, i) => {
+    h += `<tr><td><input data-i="${i}" data-k="name" value="${esc(p.name)}" style="width:200px"></td>
+      ${['G','D','M','F'].map(k => `<td class="pc ${k}"><input type="checkbox" data-i="${i}" data-pos="${k}" ${p.pos.includes(k) ? 'checked' : ''} title="${k}"></td>`).join('')}
+      <td><select data-i="${i}" data-k="level">${[1,2,3,4,5].map(l => `<option ${+p.level === l ? 'selected' : ''}>${l}</option>`).join('')}</select></td>
+      <td><button class="x" data-del="${i}" title="Remove">✕</button></td></tr>`;
+  });
+  $('rosterTbl').innerHTML = h + '</tbody>';
+  renderGroups();
+  $('rosterTbl').querySelectorAll('[data-pos]').forEach(cb => cb.onchange = () => {
+    const p = S.roster[cb.dataset.i];
+    const row = $('rosterTbl').querySelectorAll(`[data-pos][data-i="${cb.dataset.i}"]`);
+    const pos = [...row].filter(x => x.checked).map(x => x.dataset.pos).join('');
+    if (!pos) { cb.checked = true; alert('Each player needs at least one position.'); return; }
+    p.pos = pos; save(); renderLineup();
+  });
+  $('rosterTbl').querySelectorAll('input[data-k],select').forEach(el => el.onchange = () => {
+    const p = S.roster[el.dataset.i], k = el.dataset.k;
+    if (k === 'name' && S.current?.lineup[p.name]) { S.current.lineup[el.value] = S.current.lineup[p.name]; delete S.current.lineup[p.name]; }
+    if (k === 'name') S.groups.forEach(g => g.members = g.members.map(n => n === p.name ? el.value.trim() : n));
+    p[k] = k === 'level' ? +el.value : k === 'pos' ? cleanPos(el.value) : el.value.trim();
+    if (k === 'pos') el.value = p.pos;
+    save(); renderLineup();
+  });
+  $('rosterTbl').querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+    const p = S.roster[b.dataset.del]; if (!confirm(`Remove ${p.name}?`)) return;
+    S.roster.splice(b.dataset.del, 1); S.groups.forEach(g => g.members = g.members.filter(n => n !== p.name)); save(); renderRoster();
+  });
+}
+function renderGroups() {
+  $('groups').innerHTML = S.groups.map((g, i) => `<div class="grp">
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <input data-g="${i}" data-k="name" value="${esc(g.name || '')}" placeholder="Group ${i + 1}" style="width:180px">
+      <select data-g="${i}" data-k="type"><option value="together" ${g.type !== 'apart' ? 'selected' : ''}>Play together</option><option value="apart" ${g.type === 'apart' ? 'selected' : ''}>Keep apart</option></select>
+      <span class="hint">${g.members.length} selected</span><span style="flex:1"></span>
+      <button class="x" data-gdel="${i}" title="Delete group">✕</button></div>
+    <div class="chips">${S.roster.map(p => `<span class="chip ${g.members.includes(p.name) ? 'on' : ''}" data-g="${i}" data-n="${esc(p.name)}">${esc(p.name)}</span>`).join('')}</div></div>`).join('');
+  $('groups').querySelectorAll('.chip').forEach(c => c.onclick = () => {
+    const g = S.groups[c.dataset.g], n = c.dataset.n;
+    g.members = g.members.includes(n) ? g.members.filter(x => x !== n) : [...g.members, n]; save(); renderGroups();
+  });
+  $('groups').querySelectorAll('input,select').forEach(el => el.onchange = () => { S.groups[el.dataset.g][el.dataset.k] = el.value; save(); renderLineup(); });
+  $('groups').querySelectorAll('[data-gdel]').forEach(b => b.onclick = () => { if (confirm('Delete this group?')) { S.groups.splice(b.dataset.gdel, 1); save(); renderGroups(); renderLineup(); } });
+}
+$('addGroup').onclick = () => { S.groups.push({ name: '', type: 'together', members: [] }); save(); renderGroups(); };
+
+$('addBtn').onclick = () => {
+  const name = $('newName').value.trim(), pos = [...$('newPos').querySelectorAll('input:checked')].map(x => x.value).join('');
+  if (!name || !pos) { alert('Enter a name and tick at least one position.'); return; }
+  S.roster.push({ name, pos, level: +$('newLvl').value, present: true });
+  $('newName').value = ''; $('newPos').querySelectorAll('input').forEach(x => x.checked = false); save(); renderRoster();
+};
+$('resetRoster').onclick = () => { if (confirm('Reset to the built-in roster, levels and groups? This replaces any changes you have made.')) { S.roster = DEFAULT_ROSTER.map(p => ({ ...p })); S.groups = JSON.parse(JSON.stringify(DEFAULT_GROUPS)); save(); renderRoster(); } };
+
+// ---------- season ----------
+function renderSeason() {
+  const m = seasonStats();
+  const names = [...new Set([...S.roster.map(p => p.name), ...Object.keys(m)])];
+  const lvl = Object.fromEntries(S.roster.map(p => [p.name, p.level]));
+  let h = `<thead><tr><th>Name</th><th class="c">Lvl</th><th class="c">Games</th><th class="c">Quarters</th><th class="c">Avg / game</th><th class="c">G</th><th class="c">D</th><th class="c">M</th><th class="c">F</th></tr></thead><tbody>`;
+  names.forEach(n => { const e = m[n] || { g: 0, q: 0, G: 0, D: 0, M: 0, F: 0 };
+    h += `<tr><td>${esc(n)}</td><td class="c">${lvl[n] ? `<span class="lvl l${lvl[n]}">${lvl[n]}</span>` : ''}</td><td class="c">${e.g}</td><td class="c">${e.q}</td><td class="c">${e.g ? (e.q / e.g).toFixed(2) : '–'}</td>${['G','D','M','F'].map(k => `<td class="c">${e[k] || ''}</td>`).join('')}</tr>`; });
+  $('seasonTbl').innerHTML = h + '</tbody>';
+  $('gamesList').innerHTML = S.games.length ? S.games.map((g, i) =>
+    `<div class="row" style="padding:4px 0;align-items:center"><span style="min-width:200px">${esc(g.label)}</span><span class="hint">${Object.keys(g.lineup).length} players</span>
+     <button class="b" data-load="${i}">Open</button><button class="x" data-rm="${i}" title="Delete">✕</button></div>`).join('') : '<span class="hint">No games saved yet.</span>';
+  $('gamesList').querySelectorAll('[data-load]').forEach(b => b.onclick = () => {
+    const g = S.games[b.dataset.load]; S.current = JSON.parse(JSON.stringify(g)); $('gameLabel').value = g.label; save(); renderLineup();
+    document.querySelector('nav button[data-tab=game]').click();
+  });
+  $('gamesList').querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { if (confirm('Delete this game from the season?')) { S.games.splice(b.dataset.rm, 1); save(); renderSeason(); } });
+}
+$('resetSeason').onclick = () => { if (confirm('Clear all saved games?')) { S.games = []; save(); renderSeason(); } };
+
+renderChips(); renderLineup();
+</script>
+</body>
+</html>
