@@ -59,9 +59,14 @@ tfoot td { font-weight:600; background:#fafbfc; }
 .grp .chip { font-size:12px; padding:3px 8px; }
 .hidden { display:none; }
 .tscroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-.pl.dd { align-items:center; border:1px solid var(--line); border-radius:6px; padding:4px 6px; margin:3px 0; background:#fff; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+.pl.dd { align-items:center; border:1px solid var(--line); border-radius:6px; padding:4px 6px; margin:3px 0; background:#fff; cursor:grab; user-select:none; -webkit-user-select:none; }
 .pl.dd .nm { flex:1; }
 .pl.dd .tot { font-size:11px; color:var(--mute); min-width:20px; text-align:right; }
+.qcard.unlocked .pl.dd { touch-action:none; cursor:grab; }
+.qcard.locked .pl.dd { cursor:default; }
+.qcard.unlocked { border-color:#f59e0b; box-shadow:0 0 0 2px #fde68a; }
+button.lk { font:inherit; font-size:12px; padding:3px 9px; border-radius:6px; border:1px solid #cfd4db; background:#fff; cursor:pointer; }
+.qcard.unlocked button.lk { background:#f59e0b; color:#fff; border-color:#f59e0b; }
 .pl.dd.empty { border-style:dashed; color:var(--mute); background:#fafbfc; }
 .pl.dd.oop { border-color:var(--bad); background:var(--badbg); }
 .pl.dd.over { border-color:var(--bad); }
@@ -155,7 +160,7 @@ td.pc { text-align:center; padding:4px 4px; }
     <div class="tscroll"><table id="lineup"></table></div>
     <div id="grpCheck" style="margin-top:10px"></div>
     <h2 style="margin:18px 0 4px">Edit by quarter</h2>
-    <div class="hint noprint" style="margin-bottom:8px"><b>Drag</b> a player onto another to swap positions, onto someone sitting to sub them in, or into "Sitting" to take them off. On a phone you can also <b>tap</b> one player, then tap another. <b>2q</b> = quarters this game; counts update live.</div>
+    <div class="hint noprint" style="margin-bottom:8px"><b>Tap 🔒 Edit</b> on a quarter to unlock it (quarters stay locked so scrolling never moves anyone). Then <b>drag</b> a player onto another to swap positions, onto someone sitting to sub them in, or into "Sitting" to take them off. On a phone you can also <b>tap</b> one player, then tap another. <b>2q</b> = quarters this game; counts update live.</div>
     <div id="ptSummary" class="noprint" style="margin-bottom:10px"></div>
     <div class="qgrid" id="qgrid"></div>
     <textarea id="clip" style="position:absolute;left:-9999px"></textarea>
@@ -375,13 +380,13 @@ if (typeof module !== 'undefined') module.exports = { generate, computeTargets, 
 
 </script>
 <script>
-const DEFAULT_ROSTER = `Felipe Bayardo|MF|5;David Bendjoya|DM|3;Nicola Cardillo|DM|1;Ryan DiSparano|F|3;Nate Dunlop|DM|3;Isaac Gerson|MF|4;Gee|GDMF|5;Esteban Gomez|DMF|5;Pablo Guerrero|GD|2;Nacho|DMF|4;Bernardo Kabbach|GDM|2;Gabriel Lugo|DM|2;Charles Newman|GDM|3;Nicolas Nielsen|DMF|3;Juan|GMF|4;Francesco Romano|DM|2;Tharun Sathish|DM|1;Aaron Shakibi|F|4;Luke Solazzo|GDMF|4;Marcus Suri|D|2;Laksh Thakkar|D|1;Simon Valencia|DMF|3;Mateo|DM|4`
+const DEFAULT_ROSTER = `Felipe|MF|5;David|DM|3;Nicola|DM|1;Ryan|F|3;Nate|DM|3;Isaac|MF|4;Gee|GDMF|5;Esteban|DMF|5;Pablo|GD|2;Nacho|DMF|4;Bernardo|GDM|2;Gabriel|DM|2;Charles|GDM|3;Nicolas|DMF|3;Juan|GMF|4;Francesco|DM|2;Tharun|DM|1;Aaron|F|4;Luke|GDMF|4;Marcus|D|2;Laksh|D|1;Simon|DMF|3;Mateo|DM|4`
   .split(';').map(s => { const [name, pos, level] = s.split('|'); return { name, pos, level: +level, present: true }; });
 const DEFAULT_GROUPS = [
-  { name: 'Group 1', type: 'together', members: ['Ryan DiSparano', 'Esteban Gomez', 'Juan', 'Aaron Shakibi'] },
+  { name: 'Group 1', type: 'together', members: ['Ryan', 'Esteban', 'Juan', 'Aaron'] },
   { name: 'Group 2', type: 'together', members: ['Gee', 'Nacho'] },
-  { name: 'Group 3', type: 'apart', members: ['Aaron Shakibi', 'Simon Valencia'] },
-  { name: 'Group 4', type: 'together', members: ['Felipe Bayardo', 'Gee', 'Nacho'] },
+  { name: 'Group 3', type: 'apart', members: ['Aaron', 'Simon'] },
+  { name: 'Group 4', type: 'together', members: ['Felipe', 'Gee', 'Nacho'] },
 ];
 const KEY = 'lineup-builder-v1';
 let S = load();
@@ -392,7 +397,20 @@ function load() {
   const out = Object.assign({ roster: DEFAULT_ROSTER.map(p => ({ ...p })), formation: { G: 1, D: 4, M: 3, F: 3 }, boost: 0, games: [], current: null, groups: JSON.parse(JSON.stringify(DEFAULT_GROUPS)) }, s || {});
   if (!s || !s.scale5) { // migrate old 1-3 levels to 1-5
     if (s) s.roster.forEach(p => p.level = ({ 1: 1, 2: 3, 3: 5 })[p.level] || 3);
-    return Object.assign(out, { scale5: true });
+    Object.assign(out, { scale5: true });
+  }
+  if (!out.firstNames) {
+    // keep first name only (when the first name is unique on the roster)
+    const firsts = out.roster.map(p => p.name.trim().split(/\s+/)[0]);
+    const map = {};
+    out.roster.forEach((p, i) => { if (firsts.filter(f => f === firsts[i]).length === 1) map[p.name] = firsts[i]; });
+    const rn = n => map[n] || n;
+    out.roster.forEach(p => p.name = rn(p.name));
+    (out.groups || []).forEach(g => g.members = g.members.map(rn));
+    const fixL = L => Object.fromEntries(Object.entries(L).map(([n, v]) => [rn(n), v]));
+    (out.games || []).forEach(g => g.lineup = fixL(g.lineup));
+    if (out.current) out.current.lineup = fixL(out.current.lineup);
+    out.firstNames = true;
   }
   return out;
 }
@@ -437,6 +455,7 @@ $('boost').value = S.boost; $('boost').onchange = () => { S.boost = +$('boost').
 $('gameLabel').value = S.current?.label || new Date().toLocaleDateString();
 
 $('genBtn').onclick = () => {
+  UNLOCKED.clear(); SEL = null;
   const players = S.roster.filter(p => p.present).map(p => ({ name: p.name, pos: cleanPos(p.pos), level: +p.level }));
   $('genMsg').innerHTML = '';
   try {
@@ -515,13 +534,16 @@ function renderLineup() {
       }
     });
     const bench = names.filter(n => !cur.lineup[n][q]);
-    return `<div class="qcard"><h3><span>Quarter ${q + 1}</span><span class="hint ${on.length === perQ ? '' : 'badc'}">${on.length}/${perQ} · skill ${lv}</span></h3>${body}
+    const unl = UNLOCKED.has(q);
+    return `<div class="qcard ${unl ? 'unlocked' : 'locked'}"><h3><span>Quarter ${q + 1} <button class="lk noprint" data-lock="${q}">${unl ? '🔓 Done' : '🔒 Edit'}</button></span><span class="hint ${on.length === perQ ? '' : 'badc'}">${on.length}/${perQ} · skill ${lv}</span></h3>${body}
       <div class="bench dd" data-q="${q}" data-n="" data-pos="" data-bench="1"><div class="hint">Sitting (${bench.length}) – drop here to sit a player</div>${bench.map(n => chip(q, n, '')).join('')}</div></div>`;
   }).join('');
 }
 
 // ---------- move / swap players inside a quarter ----------
 let SEL = null; // {q, n, pos}
+const UNLOCKED = new Set();
+const isLocked = el => !!el.closest('.qcard.locked');
 function doMove(a, b) { // a, b: {q, n, pos, bench}
   const L = S.current.lineup;
   if (a.q !== b.q) { $('genMsg').innerHTML = '<div class="msg err">You can only swap within the same quarter.</div>'; return; }
@@ -537,7 +559,9 @@ function doMove(a, b) { // a, b: {q, n, pos, bench}
 const info = el => ({ q: +el.dataset.q, n: el.dataset.n, pos: el.dataset.pos, bench: !!el.dataset.bench });
 $('qgrid').addEventListener('click', e => {
   if (DRAG.justDropped) { DRAG.justDropped = false; return; }
-  const el = e.target.closest('.pl.dd') || e.target.closest('.bench.dd'); if (!el) return;
+  const lb = e.target.closest('[data-lock]');
+  if (lb) { const q = +lb.dataset.lock; UNLOCKED.has(q) ? UNLOCKED.delete(q) : UNLOCKED.add(q); SEL = null; renderLineup(); return; }
+  const el = e.target.closest('.pl.dd') || e.target.closest('.bench.dd'); if (!el || isLocked(el)) return;
   const t = info(el);
   if (!SEL) { if (t.n || t.pos) { SEL = t; renderLineup(); } return; }
   const a = SEL; SEL = null;
@@ -547,7 +571,7 @@ $('qgrid').addEventListener('click', e => {
 // mouse / pen / touch drag
 const DRAG = { el: null, ghost: null, x: 0, y: 0, moved: false, justDropped: false };
 $('qgrid').addEventListener('pointerdown', e => {
-  const el = e.target.closest('.pl.dd'); if (!el || e.button > 0) return;
+  const el = e.target.closest('.pl.dd'); if (!el || e.button > 0 || isLocked(el)) return;
   DRAG.el = el; DRAG.x = e.clientX; DRAG.y = e.clientY; DRAG.moved = false; DRAG.pid = e.pointerId;
 });
 window.addEventListener('pointermove', e => {
